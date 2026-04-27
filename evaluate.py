@@ -129,7 +129,7 @@ def evaluate(model: ExpressionCNN,
 
     # ── Build config snapshot ─────────────────────────────────────
     config_snapshot = {
-        'filters'    : '32/64/128',
+        'filters'    : '64/128/256',
         'img_size'   : IMG_SIZE,
         'batch_size' : BATCH_SIZE,
         'lr_initial' : LR_INITIAL,

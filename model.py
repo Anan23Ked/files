@@ -33,21 +33,21 @@ class ExpressionCNN:
         inputs = tf.keras.Input(shape=(IMG_SIZE, IMG_SIZE, CHANNELS))
 
         # Block 1
-        x = tf.keras.layers.Conv2D(32, (3,3), padding='same', use_bias=False)(inputs)
+        x = tf.keras.layers.Conv2D(64, (3,3), padding='same', use_bias=False)(inputs)
         x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.Activation('relu')(x)
         x = tf.keras.layers.MaxPooling2D(2,2)(x)
         x = tf.keras.layers.Dropout(0.25)(x)
 
         # Block 2
-        x = tf.keras.layers.Conv2D(64, (3,3), padding='same', use_bias=False)(x)
+        x = tf.keras.layers.Conv2D(128, (3,3), padding='same', use_bias=False)(x)
         x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.Activation('relu')(x)
         x = tf.keras.layers.MaxPooling2D(2,2)(x)
         x = tf.keras.layers.Dropout(0.25)(x)
 
         # Block 3
-        x = tf.keras.layers.Conv2D(128, (3,3), padding='same', use_bias=False)(x)
+        x = tf.keras.layers.Conv2D(256, (3,3), padding='same', use_bias=False)(x)
         x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.Activation('relu')(x)
         x = tf.keras.layers.MaxPooling2D(2,2)(x)

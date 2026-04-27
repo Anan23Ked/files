@@ -24,7 +24,7 @@ except ImportError:
 MODEL_PATH  = '/home/ananya/files/outputs/expression_model.tflite'
 CLASSES     = ['angry', 'happy', 'sad', 'neutral']
 IMG_SIZE    = 48
-CONF_THRESH = 0.50
+CONF_THRESH = 0.60
 FRAME_W     = 640
 FRAME_H     = 480
 TARGET_FPS  = 10
