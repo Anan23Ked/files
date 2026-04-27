@@ -10,7 +10,7 @@ import os
 import sys
 import json
 import argparse
-
+import datetime
 from config   import (TRAIN_DIR, TEST_DIR, NUM_CLASSES,
                       WEIGHTS_PATH, TFLITE_PATH)
 from dataset  import build_pipelines
@@ -18,6 +18,21 @@ from model    import ExpressionCNN
 from train    import train
 from evaluate import evaluate
 from convert  import convert
+
+timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+
+def save_terminal_output():
+    """
+    Optional: Save terminal output to a log file for later reference.
+    """
+    
+    log_dir = 'logs'
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, f'main_{timestamp}.log')
+    sys.stdout = open(log_path, 'w')
+    sys.stderr = open(log_path, 'w')
+    print(f"[Main] Terminal output is being saved to {log_path}")
+
 
 
 def parse_args():
@@ -34,6 +49,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    save_terminal_output()
 
     os.makedirs('outputs', exist_ok=True)
 
@@ -63,7 +79,7 @@ def main():
         history = train(model, train_ds, test_ds)
 
         # Persist history for evaluate.py to reuse
-        with open('outputs/history.json', 'w') as f:
+        with open(f'outputs/history_{timestamp}.json', 'w') as f:
             json.dump(history, f, indent=2)
         print("[Main] History saved → outputs/history.json")
 
@@ -77,7 +93,7 @@ def main():
             sys.exit(1)
 
         # Try to reload history for plots
-        hist_path = 'outputs/history.json'
+        hist_path = f'outputs/history_{timestamp}.json'
         if os.path.exists(hist_path):
             with open(hist_path) as f:
                 history = json.load(f)

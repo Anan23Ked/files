@@ -13,8 +13,8 @@ IMG_SIZE    = 48          # pixels (height and width)
 CHANNELS    = 1           # 1 = grayscale
 
 # ── Training ──────────────────────────────────────────────────────
-BATCH_SIZE  = 32
-EPOCHS      = 50
+BATCH_SIZE  = 15
+EPOCHS      = 100
 LR_INITIAL  = 0.001
 LR_DECAY    = 0.5         # multiply LR by this on plateau
 LR_PATIENCE = 5           # epochs before reducing LR
