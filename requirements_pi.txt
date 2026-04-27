@@ -1,0 +1,10 @@
+# ─────────────────────────────────────────────────────────────────
+#  requirements_pi.txt  —  Raspberry Pi only
+#  Install with:
+#    pip install -r requirements_pi.txt --break-system-packages
+# ─────────────────────────────────────────────────────────────────
+
+tflite-runtime>=2.13.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+pyserial>=3.5        # only needed if using ESP32 serial
