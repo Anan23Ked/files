@@ -12,6 +12,7 @@ import os
 import threading
 import subprocess
 from datetime import datetime
+from collections import deque, Counter
 
 try:
     from ai_edge_litert.interpreter import Interpreter as TFLiteInterpreter
@@ -29,9 +30,14 @@ FRAME_W     = 640
 FRAME_H     = 480
 TARGET_FPS  = 10
 
-USE_SERIAL  = False
+# ── Serial ────────────────────────────────────────────────────────
+USE_SERIAL  = True           # ENABLED
 SERIAL_PORT = '/dev/ttyS0'
 SERIAL_BAUD = 9600
+
+# ── Smoothing — only send when same label seen N times in a row ───
+SMOOTH_WINDOW = 8            # majority vote over last 8 predictions
+pred_buffer   = deque(maxlen=SMOOTH_WINDOW)
 
 COLOURS = {
     'angry'  : (0,   0,   220),
@@ -40,13 +46,12 @@ COLOURS = {
     'neutral': (180, 180, 180),
 }
 
-# ── Log directory ─────────────────────────────────────────────────
 LOG_DIR = '/home/ananya/files/logs'
 os.makedirs(LOG_DIR, exist_ok=True)
 
 
 # ─────────────────────────────────────────────────────────────────
-#  Session logger — records every inference session
+#  Session logger
 # ─────────────────────────────────────────────────────────────────
 
 class SessionLogger:
@@ -54,7 +59,7 @@ class SessionLogger:
         self.start_time   = datetime.now()
         self.notes        = notes
         self.fps_readings = []
-        self.predictions  = []   # (timestamp, label, confidence)
+        self.predictions  = []
         self.face_counts  = []
 
     def log_frame(self, fps: float, faces: int,
@@ -71,11 +76,9 @@ class SessionLogger:
     def save(self):
         if not self.fps_readings:
             return
-
         fps_arr  = np.array(self.fps_readings)
         duration = (datetime.now() - self.start_time).seconds
-
-        session = {
+        session  = {
             'timestamp'    : self.start_time.strftime('%Y-%m-%d %H:%M:%S'),
             'notes'        : self.notes,
             'model_path'   : MODEL_PATH,
@@ -83,33 +86,29 @@ class SessionLogger:
             'classes'      : CLASSES,
             'conf_threshold': CONF_THRESH,
             'fps': {
-                'mean'   : round(float(fps_arr.mean()), 2),
-                'min'    : round(float(fps_arr.min()),  2),
-                'max'    : round(float(fps_arr.max()),  2),
-                'std'    : round(float(fps_arr.std()),  2),
+                'mean' : round(float(fps_arr.mean()), 2),
+                'min'  : round(float(fps_arr.min()),  2),
+                'max'  : round(float(fps_arr.max()),  2),
+                'std'  : round(float(fps_arr.std()),  2),
                 'n_frames': len(self.fps_readings),
             },
             'faces': {
-                'mean_per_frame': round(float(np.mean(self.face_counts)), 2),
+                'mean_per_frame'  : round(float(np.mean(self.face_counts)), 2),
                 'frames_with_face': int(sum(f > 0 for f in self.face_counts)),
             },
             'prediction_counts': {
-                cls: sum(1 for p in self.predictions
-                         if p['label'] == cls)
+                cls: sum(1 for p in self.predictions if p['label'] == cls)
                 for cls in CLASSES
             },
-            'predictions_sample': self.predictions[:50],  # first 50
+            'predictions_sample': self.predictions[:50],
         }
-
         fname = os.path.join(
             LOG_DIR,
             f"session_{self.start_time.strftime('%Y%m%d_%H%M%S')}.json")
-
         with open(fname, 'w') as f:
             json.dump(session, f, indent=2)
 
-        # Append to rolling FPS summary CSV
-        csv_path = os.path.join(LOG_DIR, 'pi_sessions.csv')
+        csv_path  = os.path.join(LOG_DIR, 'pi_sessions.csv')
         write_hdr = not os.path.exists(csv_path)
         with open(csv_path, 'a') as f:
             if write_hdr:
@@ -127,9 +126,9 @@ class SessionLogger:
                     f"{pc.get('sad',0)},{pc.get('neutral',0)}\n")
 
         print(f"\n[Logger] Session saved -> {fname}")
-        print(f"[Logger] FPS mean={session['fps']['mean']}  "
-              f"min={session['fps']['min']}  max={session['fps']['max']}")
-        print(f"[Logger] Prediction counts: {session['prediction_counts']}")
+        print(f"[Logger] FPS  mean={session['fps']['mean']} "
+              f"min={session['fps']['min']} max={session['fps']['max']}")
+        print(f"[Logger] Predictions: {session['prediction_counts']}")
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -137,7 +136,7 @@ class SessionLogger:
 # ─────────────────────────────────────────────────────────────────
 
 def open_camera():
-    W, H = FRAME_W, FRAME_H
+    W, H       = FRAME_W, FRAME_H
     frame_size = int(W * H * 1.5)
 
     cmd = ['rpicam-vid', '-t', '0',
@@ -199,7 +198,7 @@ def load_model(path: str):
     inp_idx = interpreter.get_input_details()[0]['index']
     out_idx = interpreter.get_output_details()[0]['index']
     size_kb = os.path.getsize(path) / 1024
-    print(f"[Model] Loaded  <- {path}  ({size_kb:.1f} KB)")
+    print(f"[Model] Loaded <- {path}  ({size_kb:.1f} KB)")
     return interpreter, inp_idx, out_idx
 
 
@@ -218,7 +217,39 @@ def predict(interpreter, inp_idx, out_idx, tensor):
 
 
 # ─────────────────────────────────────────────────────────────────
-#  HUD
+#  Serial — non-blocking write via background thread
+# ─────────────────────────────────────────────────────────────────
+
+def init_serial():
+    import serial
+    # timeout=0 makes all reads non-blocking
+    # write_timeout=0 makes writes non-blocking — never stalls main loop
+    ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD,
+                        timeout=0, write_timeout=0)
+    print(f"[Serial] Opened {SERIAL_PORT} @ {SERIAL_BAUD} (non-blocking)")
+    return ser
+
+
+def send_expression(ser, label: str):
+    """Fire-and-forget write in a background thread — never blocks."""
+    def _write():
+        try:
+            msg = label.upper() + '\n'
+            ser.write(msg.encode())
+            ser.flush()
+            # Log to file
+            log_path = os.path.join(LOG_DIR, 'serial_log.txt')
+            with open(log_path, 'a') as f:
+                f.write(f"{datetime.now().strftime('%H:%M:%S')} -> {msg}")
+            print(f"[Serial] Sent: {msg.strip()}")
+        except Exception as e:
+            print(f"[Serial] Error: {e}")
+
+    threading.Thread(target=_write, daemon=True).start()
+
+
+# ─────────────────────────────────────────────────────────────────
+#  HUD helpers
 # ─────────────────────────────────────────────────────────────────
 
 def draw_face_box(frame, x, y, w, h, label, conf, colour):
@@ -232,57 +263,42 @@ def draw_face_box(frame, x, y, w, h, label, conf, colour):
 
 
 def draw_prob_bars(frame, probs, classes):
-    bx, by = FRAME_W - 180, 10
-    bwm, bh, gap = 160, 18, 6
+    bx, by        = FRAME_W - 180, 10
+    bwm, bh, gap  = 160, 18, 6
     for i, (cls, p) in enumerate(zip(classes, probs)):
         y   = by + i * (bh + gap)
         col = COLOURS.get(cls, (200,200,200))
-        cv2.rectangle(frame, (bx,y),(bx+bwm,y+bh),(40,40,40),-1)
-        cv2.rectangle(frame, (bx,y),(bx+int(p*bwm),y+bh),col,-1)
+        cv2.rectangle(frame, (bx,y), (bx+bwm,y+bh), (40,40,40), -1)
+        cv2.rectangle(frame, (bx,y), (bx+int(p*bwm),y+bh), col, -1)
         cv2.putText(frame, f"{cls} {p*100:.0f}%",
                     (bx+4, y+bh-4),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                    (255,255,255), 1)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255,255,255), 1)
 
 
-def draw_fps(frame, fps: float):
+def draw_hud(frame, fps, stable_label):
     cv2.putText(frame, f"FPS: {fps:.1f}",
-                (10, FRAME_H-10),
+                (10, FRAME_H-30),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200,200,200), 1)
+    cv2.putText(frame, f"Sending: {stable_label or 'none'}",
+                (10, FRAME_H-10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,220,220), 1)
 
 
 # ─────────────────────────────────────────────────────────────────
-#  Serial
-# ─────────────────────────────────────────────────────────────────
-
-def init_serial():
-    import serial
-    ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1)
-    print(f"[Serial] {SERIAL_PORT} @ {SERIAL_BAUD}")
-    return ser
-
-
-def send_expression(ser, label):
-    try:
-        ser.write((label.upper() + '\n').encode())
-    except Exception as e:
-        print(f"[Serial] Error: {e}")
-
-
-# ─────────────────────────────────────────────────────────────────
-#  Main
+#  Main loop
 # ─────────────────────────────────────────────────────────────────
 
 def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--notes', default='',
-                        help='Experiment notes for this session log')
+                        help='Session notes for log')
     args = parser.parse_args()
 
     print("\n[Init] Facial Expression Recognition")
     print(       "       Pi 4B | Trixie | rpicam")
     print(       "       Classes:", CLASSES)
+    print(       "       Serial:", "ENABLED" if USE_SERIAL else "DISABLED")
     print(       "       Press Q to quit\n")
 
     interpreter, inp_idx, out_idx = load_model(MODEL_PATH)
@@ -291,13 +307,23 @@ def main():
         cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
     read_frame = open_camera()
-    ser        = init_serial() if USE_SERIAL else None
-    session    = SessionLogger(notes=args.notes)
 
+    # Init serial — exit clearly if it fails
+    ser = None
+    if USE_SERIAL:
+        try:
+            ser = init_serial()
+        except Exception as e:
+            print(f"[Serial] FAILED to open {SERIAL_PORT}: {e}")
+            print("[Serial] Check wiring and that UART is enabled via raspi-config")
+            print("[Serial] Continuing WITHOUT serial output...")
+
+    session     = SessionLogger(notes=args.notes)
     last_label  = ''
     fps_timer   = time.time()
     frame_count = 0
     fps         = 0.0
+    stable_label = ''
 
     while True:
         ret, frame = read_frame()
@@ -317,35 +343,43 @@ def main():
             tensor             = preprocess_face(gray[y:y+h, x:x+w])
             label, conf, probs = predict(interpreter, inp_idx,
                                          out_idx, tensor)
+
             if conf >= CONF_THRESH:
-                colour = COLOURS.get(label, (255,255,255))
-                draw_face_box(frame, x, y, w, h, label, conf, colour)
+                # ── Smoothing: majority vote over last N frames ────
+                pred_buffer.append(label)
+                if len(pred_buffer) == SMOOTH_WINDOW:
+                    stable_label = Counter(pred_buffer).most_common(1)[0][0]
+                else:
+                    stable_label = label   # not enough history yet
+
+                colour = COLOURS.get(stable_label, (255,255,255))
+                draw_face_box(frame, x, y, w, h, stable_label, conf, colour)
                 draw_prob_bars(frame, probs, CLASSES)
-                detected_label = label
+                detected_label = stable_label
                 detected_conf  = conf
 
-                if ser and label != last_label:
-                    send_expression(ser, label)
-                    last_label = label
+                # ── Send only when stable label changes ───────────
+                if stable_label != last_label:
+                    if ser:
+                        send_expression(ser, stable_label)
+                    last_label = stable_label
 
-        # FPS
+        # ── FPS ───────────────────────────────────────────────────
         if frame_count % 10 == 0:
             fps       = 10 / (time.time() - fps_timer)
             fps_timer = time.time()
-            print(f"[Main] FPS: {fps:.1f} | faces: {len(faces)}"
-                  + (f" | {detected_label} {detected_conf*100:.0f}%"
-                     if detected_label else ""))
+            print(f"[Main] FPS:{fps:.1f} | faces:{len(faces)}"
+                  + (f" | sending:{stable_label}" if stable_label else ""))
 
-        session.log_frame(fps, len(faces),
-                          detected_label, detected_conf)
+        session.log_frame(fps, len(faces), detected_label, detected_conf)
+        draw_hud(frame, fps, stable_label)
 
-        draw_fps(frame, fps)
         cv2.imshow('Expression Recognition', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print("[Main] Quit.")
             break
 
-    # Cleanup + save session log
+    # ── Cleanup ───────────────────────────────────────────────────
     if hasattr(open_camera, '_proc'):
         open_camera._proc.terminate()
     if ser:
