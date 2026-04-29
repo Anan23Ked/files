@@ -13,6 +13,7 @@ import threading
 import subprocess
 from datetime import datetime
 from collections import deque, Counter
+import queue
 
 try:
     from ai_edge_litert.interpreter import Interpreter as TFLiteInterpreter
@@ -32,7 +33,7 @@ TARGET_FPS  = 10
 
 # ── Serial ────────────────────────────────────────────────────────
 USE_SERIAL  = True           # ENABLED
-SERIAL_PORT = '/dev/ttyS0'
+SERIAL_PORT = '/dev/serial0'  # Best practice: auto-mapped primary UART
 SERIAL_BAUD = 9600
 
 # ── Smoothing — only send when same label seen N times in a row ───
@@ -49,7 +50,7 @@ COLOURS = {
 LOG_DIR = '/home/ananya/files/logs'
 os.makedirs(LOG_DIR, exist_ok=True)
 
-
+serial_queue = queue.Queue()  # Thread-safe queue for serial messages
 # ─────────────────────────────────────────────────────────────────
 #  Session logger
 # ─────────────────────────────────────────────────────────────────
@@ -225,28 +226,37 @@ def init_serial():
     # timeout=0 makes all reads non-blocking
     # write_timeout=0 makes writes non-blocking — never stalls main loop
     ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD,
-                        timeout=0, write_timeout=0)
-    print(f"[Serial] Opened {SERIAL_PORT} @ {SERIAL_BAUD} (non-blocking)")
+                        timeout=1, write_timeout=1)
+    print(f"[Serial] Opened {SERIAL_PORT} @ {SERIAL_BAUD}")
     return ser
 
-
-def send_expression(ser, label: str):
-    """Fire-and-forget write in a background thread — never blocks."""
-    def _write():
+def serial_writer(ser):
+    while True:
         try:
-            msg = label.upper() + '\n'
+            msg = serial_queue.get()
             ser.write(msg.encode())
             ser.flush()
+
             # Log to file
             log_path = os.path.join(LOG_DIR, 'serial_log.txt')
             with open(log_path, 'a') as f:
-                f.write(f"{datetime.now().strftime('%H:%M:%S')} -> {msg}")
-            print(f"[Serial] Sent: {msg.strip()}")
+                f.write(f"{datetime.now().strftime('%H:%M:%S')} -> {msg.strip()}\n")
+                print(f"[Serial] Sent: {msg.strip()}")
         except Exception as e:
             print(f"[Serial] Error: {e}")
 
-    threading.Thread(target=_write, daemon=True).start()
+def start_serial_writer(ser):
+    thread = threading.Thread(target=serial_writer, args=(ser,), daemon=True)
+    thread.start()
 
+
+# def send_expression(label: str):
+#     try:
+#         idx = CLASSES.index(label)
+#         msg = str(idx) + '\n'
+#         serial_queue.put(msg)  # Enqueue message for background thread to send
+#     except Exception as e:
+#         print(f"[Queue] Error: {e}")
 
 # ─────────────────────────────────────────────────────────────────
 #  HUD helpers
@@ -361,7 +371,9 @@ def main():
                 # ── Send only when stable label changes ───────────
                 if stable_label != last_label:
                     if ser:
-                        send_expression(ser, stable_label)
+                        start_serial_writer(ser)  # Ensure writer thread is running
+                        serial_queue.put(str(CLASSES.index(stable_label)) + '\n')
+                        # send_expression(stable_label)
                     last_label = stable_label
 
         # ── FPS ───────────────────────────────────────────────────
