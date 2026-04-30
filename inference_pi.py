@@ -1,7 +1,3 @@
-# ─────────────────────────────────────────────────────────────────
-#  inference_pi.py  —  Live inference + FPS logging
-#                      Pi 4B | Debian Trixie | rpicam stack
-# ─────────────────────────────────────────────────────────────────
 
 import cv2
 import numpy as np
@@ -11,6 +7,8 @@ import json
 import os
 import threading
 import subprocess
+import socket
+import struct
 from datetime import datetime
 from collections import deque, Counter
 import queue
@@ -22,7 +20,6 @@ except ImportError:
     print("[Init] ai-edge-litert not found. Run: pip install ai-edge-litert")
     sys.exit(1)
 
-# ── Config ────────────────────────────────────────────────────────
 MODEL_PATH  = '/home/ananya/files/outputs/expression_model.tflite'
 CLASSES     = ['angry', 'happy', 'sad', 'neutral']
 IMG_SIZE    = 48
@@ -31,12 +28,11 @@ FRAME_W     = 640
 FRAME_H     = 480
 TARGET_FPS  = 10
 
-# ── Serial ────────────────────────────────────────────────────────
 USE_SERIAL  = True           # ENABLED
 SERIAL_PORT = '/dev/serial0'  # Best practice: auto-mapped primary UART
 SERIAL_BAUD = 9600
 
-# ── Smoothing — only send when same label seen N times in a row ───
+# Smoothing  only send when same label seen N times in a row 
 SMOOTH_WINDOW = 8            # majority vote over last 8 predictions
 pred_buffer   = deque(maxlen=SMOOTH_WINDOW)
 
@@ -50,10 +46,9 @@ COLOURS = {
 LOG_DIR = '/home/ananya/files/logs'
 os.makedirs(LOG_DIR, exist_ok=True)
 
+
 serial_queue = queue.Queue()  # Thread-safe queue for serial messages
-# ─────────────────────────────────────────────────────────────────
-#  Session logger
-# ─────────────────────────────────────────────────────────────────
+
 
 class SessionLogger:
     def __init__(self, notes: str = ''):
@@ -97,7 +92,8 @@ class SessionLogger:
                 'mean_per_frame'  : round(float(np.mean(self.face_counts)), 2),
                 'frames_with_face': int(sum(f > 0 for f in self.face_counts)),
             },
-            'prediction_counts': {
+
+                'prediction_counts': {
                 cls: sum(1 for p in self.predictions if p['label'] == cls)
                 for cls in CLASSES
             },
@@ -132,46 +128,40 @@ class SessionLogger:
         print(f"[Logger] Predictions: {session['prediction_counts']}")
 
 
-# ─────────────────────────────────────────────────────────────────
-#  Camera — rpicam-vid pipe
-# ─────────────────────────────────────────────────────────────────
+#  Camera â Network stream from laptop
 
-def open_camera():
-    W, H       = FRAME_W, FRAME_H
-    frame_size = int(W * H * 1.5)
+def open_camera(server_ip='192.168.1.100', port=5555):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(10)
 
-    cmd = ['rpicam-vid', '-t', '0',
-           '--width', str(W), '--height', str(H),
-           '--framerate', str(TARGET_FPS),
-           '--codec', 'yuv420',
-           '--nopreview', '-o', '-']
+    print(f"[Camera] Connecting to stream server at {server_ip}:{port}...")
+    try:
+        sock.connect((server_ip, port))
+    except Exception as e:
+        print(f"[Camera] Failed to connect: {e}")
+        print("[Camera] Make sure laptop is running camera_stream_server.py")
+        sys.exit(1)
 
-    print("[Camera] Starting rpicam-vid pipe...")
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, bufsize=0)
-
-    def drain_stderr(pipe):
-        try:
-            for _ in pipe:
-                pass
-        except Exception:
-            pass
-
-    threading.Thread(target=drain_stderr,
-                     args=(proc.stderr,), daemon=True).start()
-    open_camera._proc = proc
+    print(f"[Camera] Connected to {server_ip}:{port}")
+    open_camera._sock = sock
 
     def read_frame():
         try:
-            raw = b''
-            while len(raw) < frame_size:
-                chunk = proc.stdout.read(frame_size - len(raw))
+            size_data = sock.recv(4)
+            if not size_data:
+                return False, None
+
+            frame_size = struct.unpack('>I', size_data)[0]
+
+            data = b''
+            while len(data) < frame_size:
+                chunk = sock.recv(min(4096, frame_size - len(data)))
                 if not chunk:
                     return False, None
-                raw += chunk
-            yuv = np.frombuffer(raw, dtype=np.uint8).reshape(
-                int(H * 1.5), W)
-            return True, cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)
+                data += chunk
+
+            frame = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_COLOR)
+            return frame is not None, frame
         except Exception as e:
             print(f"[Camera] Read error: {e}")
             return False, None
@@ -180,18 +170,14 @@ def open_camera():
     for _ in range(10):
         ok, frame = read_frame()
         if ok and frame is not None:
-            print(f"[Camera] Ready — {W}x{H} @ {TARGET_FPS}fps")
+            print(f"[Camera] Ready â streaming from {server_ip}:{port}")
             return read_frame
         time.sleep(0.2)
 
-    proc.terminate()
-    print("[Camera] Failed to get first frame.")
+    sock.close()
+    print("[Camera] Failed to receive frames.")
     sys.exit(1)
 
-
-# ─────────────────────────────────────────────────────────────────
-#  Model
-# ─────────────────────────────────────────────────────────────────
 
 def load_model(path: str):
     interpreter = TFLiteInterpreter(model_path=path)
@@ -201,7 +187,6 @@ def load_model(path: str):
     size_kb = os.path.getsize(path) / 1024
     print(f"[Model] Loaded <- {path}  ({size_kb:.1f} KB)")
     return interpreter, inp_idx, out_idx
-
 
 def preprocess_face(face_gray: np.ndarray) -> np.ndarray:
     face = cv2.resize(face_gray, (IMG_SIZE, IMG_SIZE))
@@ -217,14 +202,12 @@ def predict(interpreter, inp_idx, out_idx, tensor):
     return CLASSES[idx], float(probs[idx]), probs
 
 
-# ─────────────────────────────────────────────────────────────────
-#  Serial — non-blocking write via background thread
-# ─────────────────────────────────────────────────────────────────
+#  Serial â non-blocking write via background thread
 
 def init_serial():
     import serial
     # timeout=0 makes all reads non-blocking
-    # write_timeout=0 makes writes non-blocking — never stalls main loop
+    # write_timeout=0 makes writes non-blocking â never stalls main loop
     ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD,
                         timeout=1, write_timeout=1)
     print(f"[Serial] Opened {SERIAL_PORT} @ {SERIAL_BAUD}")
@@ -237,11 +220,12 @@ def serial_writer(ser):
             ser.write(msg.encode())
             ser.flush()
 
-            # Log to file
-            log_path = os.path.join(LOG_DIR, 'serial_log.txt')
+            # Log emotion number to file (just 0/1/2/3)
+            emotion_code = msg.strip()
+            log_path = os.path.join(LOG_DIR, 'serial_output.txt')
             with open(log_path, 'a') as f:
-                f.write(f"{datetime.now().strftime('%H:%M:%S')} -> {msg.strip()}\n")
-                print(f"[Serial] Sent: {msg.strip()}")
+                f.write(f"{datetime.now().strftime('%H:%M:%S.%f')[:12]} {emotion_code}\n")
+                print(f"[Serial] Sent: {emotion_code}")
         except Exception as e:
             print(f"[Serial] Error: {e}")
 
@@ -257,10 +241,6 @@ def start_serial_writer(ser):
 #         serial_queue.put(msg)  # Enqueue message for background thread to send
 #     except Exception as e:
 #         print(f"[Queue] Error: {e}")
-
-# ─────────────────────────────────────────────────────────────────
-#  HUD helpers
-# ─────────────────────────────────────────────────────────────────
 
 def draw_face_box(frame, x, y, w, h, label, conf, colour):
     cv2.rectangle(frame, (x, y), (x+w, y+h), colour, 2)
@@ -294,10 +274,6 @@ def draw_hud(frame, fps, stable_label):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,220,220), 1)
 
 
-# ─────────────────────────────────────────────────────────────────
-#  Main loop
-# ─────────────────────────────────────────────────────────────────
-
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -316,9 +292,10 @@ def main():
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-    read_frame = open_camera()
+    SERVER_IP = '127.0.0.1'
+    read_frame = open_camera(server_ip=SERVER_IP, port=5555)
 
-    # Init serial — exit clearly if it fails
+    # Init serial â exit clearly if it fails
     ser = None
     if USE_SERIAL:
         try:
@@ -350,12 +327,13 @@ def main():
         detected_conf  = 0.0
 
         for (x, y, w, h) in faces:
-            tensor             = preprocess_face(gray[y:y+h, x:x+w])
+            tensor = preprocess_face(gray[y:y+h, x:x+w])
+                                                                                                                               
             label, conf, probs = predict(interpreter, inp_idx,
                                          out_idx, tensor)
 
             if conf >= CONF_THRESH:
-                # ── Smoothing: majority vote over last N frames ────
+                #  Smoothing: majority vote over last N frames 
                 pred_buffer.append(label)
                 if len(pred_buffer) == SMOOTH_WINDOW:
                     stable_label = Counter(pred_buffer).most_common(1)[0][0]
@@ -368,7 +346,7 @@ def main():
                 detected_label = stable_label
                 detected_conf  = conf
 
-                # ── Send only when stable label changes ───────────
+                #  Send only when stable label changes 
                 if stable_label != last_label:
                     if ser:
                         start_serial_writer(ser)  # Ensure writer thread is running
@@ -376,7 +354,7 @@ def main():
                         # send_expression(stable_label)
                     last_label = stable_label
 
-        # ── FPS ───────────────────────────────────────────────────
+        #  FPS 
         if frame_count % 10 == 0:
             fps       = 10 / (time.time() - fps_timer)
             fps_timer = time.time()
@@ -391,9 +369,8 @@ def main():
             print("[Main] Quit.")
             break
 
-    # ── Cleanup ───────────────────────────────────────────────────
-    if hasattr(open_camera, '_proc'):
-        open_camera._proc.terminate()
+    if hasattr(open_camera, '_sock'):
+        open_camera._sock.close()
     if ser:
         ser.close()
     cv2.destroyAllWindows()
