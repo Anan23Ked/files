@@ -1,11 +1,3 @@
-# ─────────────────────────────────────────────────────────────────
-#  main.py  —  Full pipeline entry point
-#
-#  Usage:
-#    python main.py              # train + evaluate + convert
-#    python main.py --skip-train # evaluate + convert (needs weights)
-# ─────────────────────────────────────────────────────────────────
-
 import os
 import sys
 import json

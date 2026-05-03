@@ -1,7 +1,3 @@
-# ─────────────────────────────────────────────────────────────────
-#  convert.py  —  Convert trained weights -> quantised TFLite model
-# ─────────────────────────────────────────────────────────────────
-
 import os
 import numpy as np
 import tensorflow as tf

@@ -1,0 +1,222 @@
+/Users/a91935/Documents/Ananya/UCL/DLSN/files/evaluate.py:73: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+/Users/a91935/Documents/Ananya/UCL/DLSN/files/evaluate.py:52: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+WARNING:absl:Please consider providing the trackable_obj argument in the from_concrete_functions. Providing without the trackable_obj argument is deprecated and it will use the deprecated conversion path.
+/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/lite/python/interpreter.py:457: UserWarning:     Warning: tf.lite.Interpreter is deprecated and is scheduled for deletion in
+    TF 2.20. Please use the LiteRT interpreter from the ai_edge_litert package.
+    See the [migration guide](https://ai.google.dev/edge/litert/migration)
+    for details.
+    
+  warnings.warn(_INTERPRETER_DELETION_WARNING)
+█████████████████████████████████████████████
+  sad           522  ████████████████████████████████████████████████████
+  neutral       546  ██████████████████████████████████████████████████████
+Model: "ExpressionCNN"
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+│ input_layer (InputLayer)             │ (None, 48, 48, 1)           │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ conv2d (Conv2D)                      │ (None, 48, 48, 64)          │             576 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization                  │ (None, 48, 48, 64)          │             256 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation (Activation)              │ (None, 48, 48, 64)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d (MaxPooling2D)         │ (None, 24, 24, 64)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout (Dropout)                    │ (None, 24, 24, 64)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ conv2d_1 (Conv2D)                    │ (None, 24, 24, 128)         │          73,728 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization_1                │ (None, 24, 24, 128)         │             512 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_1 (Activation)            │ (None, 24, 24, 128)         │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d_1 (MaxPooling2D)       │ (None, 12, 12, 128)         │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_1 (Dropout)                  │ (None, 12, 12, 128)         │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ conv2d_2 (Conv2D)                    │ (None, 12, 12, 256)         │         294,912 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization_2                │ (None, 12, 12, 256)         │           1,024 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_2 (Activation)            │ (None, 12, 12, 256)         │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d_2 (MaxPooling2D)       │ (None, 6, 6, 256)           │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_2 (Dropout)                  │ (None, 6, 6, 256)           │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ flatten (Flatten)                    │ (None, 9216)                │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense (Dense)                        │ (None, 256)                 │       2,359,296 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization_3                │ (None, 256)                 │           1,024 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_3 (Activation)            │ (None, 256)                 │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_3 (Dropout)                  │ (None, 256)                 │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense_1 (Dense)                      │ (None, 4)                   │           1,028 │
+└──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
+ Total params: 2,732,356 (10.42 MB)
+ Trainable params: 2,730,948 (10.42 MB)
+ Non-trainable params: 1,408 (5.50 KB)
+
+[Model] Total params : 2,732,356
+[Model] Classes      : 4
+[Model] Input shape  : (48 x 48 x 1)
+
+=======================================================
+  STEP 2 — Train
+=======================================================
+ Epoch   T-Loss   T-Acc   V-Loss   V-Acc         LR
+---------------------------------------------------
+     1   1.7685  0.2677   1.4108  0.2483   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.2483)
+     2   1.5661  0.3030   1.3796  0.2828   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.2828)
+     3   1.4895  0.3403   1.3952  0.2747   0.001000
+     4   1.4177  0.3612   1.3584  0.2989   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.2989)
+     5   1.3482  0.4050   1.2920  0.3943   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.3943)
+     6   1.3052  0.4159   1.2739  0.3782   0.001000
+     7   1.2604  0.4388   1.2242  0.4425   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.4425)
+     8   1.1638  0.4940   1.1792  0.4678   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.4678)
+     9   1.1441  0.5065   1.1457  0.4828   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.4828)
+    10   1.1134  0.5129   1.1234  0.5057   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5057)
+    11   1.0851  0.5308   1.2321  0.4494   0.001000
+    12   1.0310  0.5731   1.2140  0.4736   0.001000
+    13   0.9888  0.5836   1.2162  0.4517   0.001000
+    14   0.9768  0.6119   1.1576  0.4747   0.001000
+    15   0.9359  0.6119   1.1150  0.5161   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5161)
+    16   0.9161  0.6239   1.3058  0.4805   0.001000
+    17   0.8851  0.6343   1.1218  0.5299   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5299)
+    18   0.8638  0.6408   1.1164  0.5195   0.001000
+    19   0.8250  0.6672   1.1715  0.5195   0.001000
+    20   0.8226  0.6478   1.1091  0.5448   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5448)
+    21   0.7725  0.6761   1.1681  0.5253   0.001000
+    22   0.7455  0.6975   1.1275  0.5368   0.001000
+    23   0.7571  0.6995   1.1689  0.5218   0.001000
+    24   0.7172  0.7095   1.1714  0.5299   0.001000
+    25   0.6617  0.7418   1.1351  0.5368   0.001000
+         v LR reduced -> 0.000500
+    26   0.7011  0.7194   1.3190  0.5080   0.000500
+    27   0.6398  0.7493   1.1996  0.5310   0.000500
+    28   0.6449  0.7547   1.3262  0.5506   0.000500
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5506)
+    29   0.5716  0.7856   1.1972  0.5241   0.000500
+    30   0.5812  0.7781   1.3502  0.5034   0.000500
+    31   0.5618  0.7831   1.3400  0.4954   0.000500
+    32   0.5725  0.7791   1.2138  0.5345   0.000500
+    33   0.5819  0.7731   1.2615  0.5241   0.000500
+         v LR reduced -> 0.000250
+    34   0.5207  0.8104   1.2486  0.5368   0.000250
+    35   0.4869  0.8194   1.4017  0.5264   0.000250
+    36   0.5039  0.8045   1.1972  0.5644   0.000250
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5644)
+    37   0.4699  0.8174   1.2736  0.5287   0.000250
+    38   0.4406  0.8239   1.3118  0.5483   0.000250
+    39   0.4052  0.8517   1.2323  0.5540   0.000250
+    40   0.4466  0.8373   1.3271  0.5333   0.000250
+    41   0.4227  0.8333   1.2915  0.5609   0.000250
+         v LR reduced -> 0.000125
+    42   0.3812  0.8627   1.4794  0.5218   0.000125
+    43   0.4040  0.8493   1.3954  0.5310   0.000125
+    44   0.3740  0.8682   1.5516  0.5241   0.000125
+    45   0.3671  0.8687   1.3255  0.5517   0.000125
+    46   0.3483  0.8741   1.4565  0.5425   0.000125
+         v LR reduced -> 0.000063
+
+[Train] Early stopping at epoch 46.
+
+[Train] Best validation accuracy: 0.5644
+[Main] History saved → outputs/history.json
+
+=======================================================
+  STEP 3 — Evaluate
+=======================================================
+[Model] Weights loaded <- outputs/best_weights.weights.h5
+
+[Evaluate] Classification Report:
+───────────────────────────────────────────────────────
+              precision    recall  f1-score   support
+
+       angry     0.5488    0.5043    0.5256       234
+       happy     0.7656    0.7000    0.7313       210
+         sad     0.5137    0.3571    0.4213       210
+     neutral     0.4689    0.7010    0.5619       204
+
+    accuracy                         0.5629       858
+   macro avg     0.5743    0.5656    0.5600       858
+weighted avg     0.5743    0.5629    0.5591       858
+
+[Evaluate] Confusion matrix -> logs/confusion_latest.png
+[Evaluate] History plot -> logs/history_latest.png
+[Logger] Experiment saved: exp_20260503_215652
+         JSON  -> logs/experiments.json
+         CSV   -> logs/summary.csv
+
+====================================================================================================
+  EXPERIMENT COMPARISON TABLE
+====================================================================================================
+ID                     Notes                      ValAcc  MacroF1  Size KB   FPS  Epochs
+----------------------------------------------------------------------------------------------------
+20260427_212702                                   0.5517   0.5624   1255.9   0.0      31
+20260427_213820                                   0.5529   0.5377   1255.9   0.0      31
+20260427_213833                                   0.5437   0.5377   1255.9   0.0      30
+20260427_215122                                   0.5552   0.5525   1255.9   0.0      31
+20260428_075251                                    0.554   0.5554   1255.9   0.0      39
+20260503_172742                                    0.577   0.5735   1255.9   0.0      50
+20260503_213900                                   0.5724   0.5531   1255.9   0.0      61
+20260503_215652                                   0.5644     0.56   1255.9   0.0      46
+====================================================================================================
+  Total experiments: 8
+  Log files: logs/experiments.json  |  logs/summary.csv
+
+
+=======================================================
+  STEP 4 — Convert to TFLite for Raspberry Pi
+=======================================================
+[Convert] Loading model weights...
+[Model] Weights loaded <- outputs/best_weights.weights.h5
+[Convert] Running TFLite conversion with quantisation...
+[Convert] Saved  -> outputs/expression_model.tflite
+[Convert] Size   : 2682.2 KB
+[Convert] Running sanity check...
+[Convert] Probabilities sum: 1.0000  (should be ~1.0) OK
+[Convert] Conversion complete.
+
+=======================================================
+  PIPELINE COMPLETE
+=======================================================
+  Weights  → outputs/best_weights.npy
+  TFLite   → outputs/expression_model.tflite
+  Copy expression_model.tflite + inference_pi.py to your Pi
+=======================================================

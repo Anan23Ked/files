@@ -1,6 +1,4 @@
 /dataset*
-/outputs*
-/logs*
 *.h5
 *.npy
 *.json  

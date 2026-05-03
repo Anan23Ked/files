@@ -1,0 +1,165 @@
+Traceback (most recent call last):
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/main.py", line 126, in <module>
+    main()
+    ~~~~^^
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/main.py", line 79, in main
+    history = train(model, train_ds, test_ds)
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/train.py", line 126, in train
+    l, a = train_step(imgs, lbls)
+           ~~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/util/traceback_utils.py", line 164, in error_handler
+    return fn(*args, **kwargs)
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/polymorphic_function/polymorphic_function.py", line 833, in __call__
+    result = self._call(*args, **kwds)
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/polymorphic_function/polymorphic_function.py", line 869, in _call
+    return tracing_compilation.call_function(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        args, kwds, self._no_variable_creation_config
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/polymorphic_function/tracing_compilation.py", line 139, in call_function
+    return function._call_flat(  # pylint: disable=protected-access
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        flat_inputs, captured_inputs=function.captured_inputs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/polymorphic_function/concrete_function.py", line 1322, in _call_flat
+    return self._inference_function.call_preflattened(args)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/polymorphic_function/atomic_function.py", line 216, in call_preflattened
+    flat_outputs = self.call_flat(*args)
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/polymorphic_function/atomic_function.py", line 251, in call_flat
+    outputs = self._bound_context.call_function(
+        self.name,
+        list(args),
+        len(self.function_type.flat_outputs),
+    )
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/context.py", line 1688, in call_function
+    outputs = execute.execute(
+        name.decode("utf-8"),
+    ...<3 lines>...
+        ctx=self,
+    )
+  File "/Users/a91935/Documents/Ananya/UCL/DLSN/files/venv/lib/python3.13/site-packages/tensorflow/python/eager/execute.py", line 53, in quick_execute
+    tensors = pywrap_tfe.TFE_Py_Execute(ctx._handle, device_name, op_name,
+                                        inputs, attrs, num_outputs)
+KeyboardInterrupt
+─────────────────────────────┼─────────────────┤
+│ activation (Activation)              │ (None, 48, 48, 32)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d (MaxPooling2D)         │ (None, 24, 24, 32)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout (Dropout)                    │ (None, 24, 24, 32)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ conv2d_1 (Conv2D)                    │ (None, 24, 24, 64)          │          18,432 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization_1                │ (None, 24, 24, 64)          │             256 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_1 (Activation)            │ (None, 24, 24, 64)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d_1 (MaxPooling2D)       │ (None, 12, 12, 64)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_1 (Dropout)                  │ (None, 12, 12, 64)          │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ conv2d_2 (Conv2D)                    │ (None, 12, 12, 128)         │          73,728 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization_2                │ (None, 12, 12, 128)         │             512 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_2 (Activation)            │ (None, 12, 12, 128)         │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling2d_2 (MaxPooling2D)       │ (None, 6, 6, 128)           │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_2 (Dropout)                  │ (None, 6, 6, 128)           │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ flatten (Flatten)                    │ (None, 4608)                │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense (Dense)                        │ (None, 256)                 │       1,179,648 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization_3                │ (None, 256)                 │           1,024 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ activation_3 (Activation)            │ (None, 256)                 │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_3 (Dropout)                  │ (None, 256)                 │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense_1 (Dense)                      │ (None, 4)                   │           1,028 │
+└──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
+ Total params: 1,275,044 (4.86 MB)
+ Trainable params: 1,274,084 (4.86 MB)
+ Non-trainable params: 960 (3.75 KB)
+
+[Model] Total params : 1,275,044
+[Model] Classes      : 4
+[Model] Input shape  : (48 x 48 x 1)
+
+=======================================================
+  STEP 2 — Train
+=======================================================
+ Epoch   T-Loss   T-Acc   V-Loss   V-Acc         LR
+---------------------------------------------------
+     1   1.7383  0.2896   1.3910  0.2517   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.2517)
+     2   1.5800  0.3021   1.3665  0.3368   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.3368)
+     3   1.5111  0.3192   1.4610  0.2494   0.001000
+     4   1.4543  0.3443   1.3224  0.3885   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.3885)
+     5   1.3815  0.3771   1.3167  0.3736   0.001000
+     6   1.3368  0.4104   1.2248  0.4379   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.4379)
+     7   1.2837  0.4356   1.1994  0.4529   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.4529)
+     8   1.2007  0.4780   1.1857  0.4517   0.001000
+     9   1.2042  0.4582   1.2102  0.4494   0.001000
+    10   1.1405  0.5085   1.2843  0.4276   0.001000
+    11   1.1276  0.5055   1.1492  0.4943   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.4943)
+    12   1.0969  0.5183   1.1694  0.4828   0.001000
+    13   1.0792  0.5400   1.1032  0.5287   0.001000
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5287)
+    14   1.0460  0.5584   1.1537  0.4931   0.001000
+    15   1.0029  0.5864   1.1625  0.5046   0.001000
+    16   1.0092  0.5707   1.1407  0.4931   0.001000
+    17   0.9979  0.5878   1.1694  0.4885   0.001000
+    18   0.9437  0.5926   1.1038  0.5126   0.001000
+         v LR reduced -> 0.000500
+    19   0.9460  0.6076   1.0951  0.5253   0.000500
+    20   0.9185  0.6162   1.0805  0.5299   0.000500
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5299)
+    21   0.8950  0.6279   1.1058  0.5207   0.000500
+    22   0.8966  0.6296   1.2890  0.4770   0.000500
+    23   0.8891  0.6307   1.0776  0.5506   0.000500
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5506)
+    24   0.8511  0.6564   1.1100  0.5299   0.000500
+    25   0.8450  0.6598   1.1025  0.5356   0.000500
+    26   0.8072  0.6743   1.1631  0.5230   0.000500
+    27   0.8049  0.6616   1.1272  0.5310   0.000500
+    28   0.7929  0.6817   1.1875  0.5126   0.000500
+         v LR reduced -> 0.000250
+    29   0.7905  0.6854   1.1141  0.5379   0.000250
+    30   0.7411  0.7097   1.3357  0.4759   0.000250
+    31   0.7671  0.6852   1.1208  0.5379   0.000250
+    32   0.7326  0.7152   1.1107  0.5575   0.000250
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5575)
+    33   0.7168  0.7208   1.1525  0.5391   0.000250
+    34   0.6905  0.7280   1.2427  0.5172   0.000250
+    35   0.6643  0.7436   1.3114  0.5138   0.000250
+    36   0.6394  0.7506   1.1230  0.5471   0.000250
+    37   0.6550  0.7519   1.1612  0.5598   0.000250
+[Model] Weights saved -> outputs/best_weights.weights.h5
+         * Best saved  (val_acc=0.5598)
+    38   0.6155  0.7473   1.2096  0.5115   0.000250
