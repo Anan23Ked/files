@@ -38,7 +38,12 @@ git clone https://github.com/Anan23Ked/files.git && cd files
 pip install -r requirements.txt
 
 ### 3. Usage
-run python main.py
+run python main.py on your PC
+
+### 4. On the Pi
+a. Load the .tflite model generted from the repository
+b. Install Pi dependencies: pip install requirements_pi.txt
+b. Run python inference_pi.py on the RaspberryPi terminal
 
 ### 4. On Arduino IDE
 run trigger.ino
