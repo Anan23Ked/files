@@ -32,11 +32,13 @@ Interfaces with an ESP32 microcontroller to execute predefined hardware response
 
 ## Installation
 ### 1. Clone the repository
-<git clone https://github.com/Anan23Ked/files.git>
-<cd files>
+git clone https://github.com/Anan23Ked/files.git && cd files
 
 ### 2. Install dependencies
-<pip install -r requirements.txt>
+pip install -r requirements.txt
 
 ### 3. Usage
-<python main.py>
+run python main.py
+
+### 4. On Arduino IDE
+run trigger.ino
